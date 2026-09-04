@@ -1,0 +1,109 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PT Equipment Tracking - ลงทะเบียนผู้ใช้</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Sarabun", sans-serif;
+      background: #f4f7f6;
+      color: #1f2b28;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .card {
+      background: #fff;
+      border: 1.5px solid #00674f;
+      border-radius: 10px;
+      padding: 28px 24px;
+      max-width: 360px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 1px 3px rgba(0,103,79,0.12);
+    }
+    h1 {
+      font-size: 16px;
+      color: #00674f;
+      margin: 0 0 16px;
+    }
+    #status {
+      font-size: 14px;
+      line-height: 1.6;
+      white-space: pre-line;
+    }
+    .spinner {
+      width: 28px;
+      height: 28px;
+      margin: 0 auto 14px;
+      border: 3px solid #d9ead3;
+      border-top-color: #00674f;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>PT-Equipment Tracking</h1>
+    <div class="spinner" id="spinner"></div>
+    <p id="status">กำลังโหลด...</p>
+  </div>
+
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script>
+    // Tied to the LIFF app created under the "PT Equipment LIFF" LINE Login
+    // channel. WEBAPP_URL is the PT-Equipment Tracking Apps Script web app's
+    // /exec URL — this page just calls it as a plain JSON endpoint (?action=
+    // registerLineUser), since google.script.run only works for pages Apps
+    // Script itself serves, not pages hosted elsewhere like here.
+    const LIFF_ID = "2011424095-UkrzBrNY";
+    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbygkvq70NfIJKLYvFwWVdy8sqFSo8_a0rUAwD6Cd3J_ZJxU_u0axvxW_JF6yAE1GkCv/exec";
+
+    const statusEl = document.getElementById("status");
+    const spinnerEl = document.getElementById("spinner");
+
+    function showResult(text) {
+      spinnerEl.style.display = "none";
+      statusEl.textContent = text;
+    }
+
+    liff.init({ liffId: LIFF_ID })
+      .then(() => {
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return null;
+        }
+        return liff.getProfile();
+      })
+      .then((profile) => {
+        if (!profile) return; // liff.login() is redirecting the page
+        statusEl.textContent = "กำลังบันทึกข้อมูล...";
+        const url = WEBAPP_URL
+          + "?action=registerLineUser"
+          + "&userId=" + encodeURIComponent(profile.userId)
+          + "&name=" + encodeURIComponent(profile.displayName || "");
+        return fetch(url).then((res) => res.json());
+      })
+      .then((data) => {
+        if (!data) return;
+        if (data.ok) {
+          showResult("ลงทะเบียนสำเร็จ ยินดีต้อนรับ " + (data.name || "") + "\n\nปิดหน้านี้ได้เลยครับ");
+        } else {
+          showResult("เกิดข้อผิดพลาด: " + (data.error || "ไม่ทราบสาเหตุ"));
+        }
+      })
+      .catch((err) => {
+        showResult("เกิดข้อผิดพลาด: " + ((err && err.message) || err));
+      });
+  </script>
+</body>
+</html>
