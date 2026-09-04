@@ -103,8 +103,10 @@
     <div id="form-section">
       <p class="line-name">เข้าสู่ระบบด้วยบัญชี LINE: <b id="line-name-out"></b></p>
       <form id="reg-form">
-        <label for="fullName">ชื่อ-นามสกุล / ชื่อเล่น</label>
+        <label for="fullName">ชื่อ-นามสกุล</label>
         <input type="text" id="fullName" required>
+        <label for="nickname">ชื่อเล่น</label>
+        <input type="text" id="nickname" required>
         <label for="phone">เบอร์โทร</label>
         <input type="tel" id="phone">
         <label for="email">Email</label>
@@ -166,8 +168,9 @@
       e.preventDefault();
       formErrorEl.style.display = "none";
       const fullName = document.getElementById("fullName").value.trim();
-      if (!fullName) {
-        formErrorEl.textContent = "กรุณากรอกชื่อ-นามสกุล / ชื่อเล่น";
+      const nickname = document.getElementById("nickname").value.trim();
+      if (!fullName || !nickname) {
+        formErrorEl.textContent = "กรุณากรอกชื่อ-นามสกุลและชื่อเล่น";
         formErrorEl.style.display = "block";
         return;
       }
@@ -182,6 +185,7 @@
         + "&userId=" + encodeURIComponent(lineUserId)
         + "&name=" + encodeURIComponent(lineDisplayName)
         + "&fullName=" + encodeURIComponent(fullName)
+        + "&nickname=" + encodeURIComponent(nickname)
         + "&phone=" + encodeURIComponent(phone)
         + "&email=" + encodeURIComponent(email);
 
