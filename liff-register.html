@@ -49,13 +49,70 @@
       animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
+    #form-section { display: none; text-align: left; }
+    #form-section label {
+      display: block;
+      font-size: 13px;
+      color: #4a5a56;
+      margin: 12px 0 4px;
+    }
+    #form-section input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #cdd6d3;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: inherit;
+      color: #1f2b28;
+    }
+    #form-section .line-name {
+      font-size: 13px;
+      color: #4a5a56;
+      text-align: center;
+      margin: 0 0 4px;
+    }
+    #form-section button {
+      width: 100%;
+      margin-top: 20px;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      background: #00674f;
+      color: #fff;
+      font-size: 15px;
+      font-family: inherit;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    #form-section button:disabled { opacity: 0.6; cursor: default; }
+    #form-error {
+      color: #c0392b;
+      font-size: 13px;
+      margin-top: 8px;
+      display: none;
+    }
   </style>
 </head>
 <body>
   <div class="card">
     <h1>PT-Equipment Tracking</h1>
-    <div class="spinner" id="spinner"></div>
-    <p id="status">กำลังโหลด...</p>
+    <div id="loading-section">
+      <div class="spinner" id="spinner"></div>
+      <p id="status">กำลังโหลด...</p>
+    </div>
+    <div id="form-section">
+      <p class="line-name">เข้าสู่ระบบด้วยบัญชี LINE: <b id="line-name-out"></b></p>
+      <form id="reg-form">
+        <label for="fullName">ชื่อ-นามสกุล / ชื่อเล่น</label>
+        <input type="text" id="fullName" required>
+        <label for="phone">เบอร์โทร</label>
+        <input type="tel" id="phone">
+        <label for="email">Email</label>
+        <input type="email" id="email">
+        <div id="form-error"></div>
+        <button type="submit" id="submit-btn">บันทึก</button>
+      </form>
+    </div>
   </div>
 
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -68,13 +125,22 @@
     const LIFF_ID = "2011424095-UkrzBrNY";
     const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbygkvq70NfIJKLYvFwWVdy8sqFSo8_a0rUAwD6Cd3J_ZJxU_u0axvxW_JF6yAE1GkCv/exec";
 
+    const loadingSection = document.getElementById("loading-section");
+    const formSection = document.getElementById("form-section");
     const statusEl = document.getElementById("status");
     const spinnerEl = document.getElementById("spinner");
+    const formErrorEl = document.getElementById("form-error");
+    const submitBtn = document.getElementById("submit-btn");
 
-    function showResult(text) {
+    function showLoadingText(text) {
+      loadingSection.style.display = "block";
+      formSection.style.display = "none";
       spinnerEl.style.display = "none";
       statusEl.textContent = text;
     }
+
+    let lineUserId = "";
+    let lineDisplayName = "";
 
     liff.init({ liffId: LIFF_ID })
       .then(() => {
@@ -86,24 +152,58 @@
       })
       .then((profile) => {
         if (!profile) return; // liff.login() is redirecting the page
-        statusEl.textContent = "กำลังบันทึกข้อมูล...";
-        const url = WEBAPP_URL
-          + "?action=registerLineUser"
-          + "&userId=" + encodeURIComponent(profile.userId)
-          + "&name=" + encodeURIComponent(profile.displayName || "");
-        return fetch(url).then((res) => res.json());
-      })
-      .then((data) => {
-        if (!data) return;
-        if (data.ok) {
-          showResult("ลงทะเบียนสำเร็จ ยินดีต้อนรับ " + (data.name || "") + "\n\nปิดหน้านี้ได้เลยครับ");
-        } else {
-          showResult("เกิดข้อผิดพลาด: " + (data.error || "ไม่ทราบสาเหตุ"));
-        }
+        lineUserId = profile.userId;
+        lineDisplayName = profile.displayName || "";
+        document.getElementById("line-name-out").textContent = lineDisplayName || "(ไม่มีชื่อ)";
+        loadingSection.style.display = "none";
+        formSection.style.display = "block";
       })
       .catch((err) => {
-        showResult("เกิดข้อผิดพลาด: " + ((err && err.message) || err));
+        showLoadingText("เกิดข้อผิดพลาด: " + ((err && err.message) || err));
       });
+
+    document.getElementById("reg-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      formErrorEl.style.display = "none";
+      const fullName = document.getElementById("fullName").value.trim();
+      if (!fullName) {
+        formErrorEl.textContent = "กรุณากรอกชื่อ-นามสกุล / ชื่อเล่น";
+        formErrorEl.style.display = "block";
+        return;
+      }
+      const phone = document.getElementById("phone").value.trim();
+      const email = document.getElementById("email").value.trim();
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = "กำลังบันทึก...";
+
+      const url = WEBAPP_URL
+        + "?action=registerLineUser"
+        + "&userId=" + encodeURIComponent(lineUserId)
+        + "&name=" + encodeURIComponent(lineDisplayName)
+        + "&fullName=" + encodeURIComponent(fullName)
+        + "&phone=" + encodeURIComponent(phone)
+        + "&email=" + encodeURIComponent(email);
+
+      fetch(url)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.ok) {
+            showLoadingText("ลงทะเบียนสำเร็จ ยินดีต้อนรับ " + (data.name || "") + "\n\nปิดหน้านี้ได้เลยครับ");
+          } else {
+            submitBtn.disabled = false;
+            submitBtn.textContent = "บันทึก";
+            formErrorEl.textContent = "เกิดข้อผิดพลาด: " + (data.error || "ไม่ทราบสาเหตุ");
+            formErrorEl.style.display = "block";
+          }
+        })
+        .catch((err) => {
+          submitBtn.disabled = false;
+          submitBtn.textContent = "บันทึก";
+          formErrorEl.textContent = "เกิดข้อผิดพลาด: " + ((err && err.message) || err);
+          formErrorEl.style.display = "block";
+        });
+    });
   </script>
 </body>
 </html>
