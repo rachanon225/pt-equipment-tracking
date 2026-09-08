@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PT Equipment Tracking</title>
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+  iframe { border: 0; width: 100vw; height: 100vh; display: block; }
+</style>
+</head>
+<body>
+<iframe id="app" allow="camera"></iframe>
+<script>
+  // Hosted on GitHub Pages (not script.google.com) specifically so opening
+  // this from LINE's in-app browser is a top-level navigation to a normal
+  // web domain, not to script.google.com directly — LINE/Google's
+  // account-aware URL rewriting for script.google.com (which 404s for this
+  // "Anyone"-access web app) only kicks in on a direct top-level nav to
+  // that domain, not when it's loaded as an <iframe> subresource from
+  // elsewhere. Same reason liff-register.html never hit this: it only ever
+  // calls the web app via fetch(), never navigates to it.
+  const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbygkvq70NfIJKLYvFwWVdy8sqFSo8_a0rUAwD6Cd3J_ZJxU_u0axvxW_JF6yAE1GkCv/exec";
+  const tab = new URLSearchParams(location.search).get("tab") || "";
+  document.getElementById("app").src = WEBAPP_URL + (tab ? "?tab=" + encodeURIComponent(tab) : "");
+</script>
+</body>
+</html>
