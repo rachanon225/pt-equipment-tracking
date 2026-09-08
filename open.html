@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PT Equipment Tracking</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Sarabun", sans-serif;
+    background: #f4f7f6;
+    color: #1f2b28;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+  }
+  .spinner {
+    width: 28px;
+    height: 28px;
+    border: 3px solid #d9ead3;
+    border-top-color: #00674f;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="spinner"></div>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script>
+  // Redirects to the PT-Equipment Tracking web app, attaching the LINE
+  // User ID (if available) so doGet() can resolve "Recorded By" server-side.
+  // liff.init() has to run HERE, on a genuine top-level page, because it
+  // doesn't work reliably from inside the web app itself — that page's
+  // real content is nested inside Apps Script's own sandboxed iframe,
+  // which breaks LIFF's login/redirect handling (confirmed: it hangs
+  // there instead of resolving). Each Rich Menu button's LIFF app
+  // Endpoint URL points here with its own ?tab=, matching
+  // LIFF_IDS_BY_TAB_ in Code.gs — keep the two in sync if either changes.
+  const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbygkvq70NfIJKLYvFwWVdy8sqFSo8_a0rUAwD6Cd3J_ZJxU_u0axvxW_JF6yAE1GkCv/exec";
+  const LIFF_IDS = {
+    register: "2011424095-ll0k2cAI",
+    calibrate: "2011424095-yFf4dJnp",
+    repair: "2011424095-NNKWGS1w",
+    checkout: "2011424095-Iy0c0wpy",
+  };
+
+  const params = new URLSearchParams(location.search);
+  const tab = params.get("tab") || "";
+  const liffId = LIFF_IDS[tab];
+
+  let navigated = false;
+  function goToApp(lineUserId) {
+    if (navigated) return; // the real liff chain and the timeout fallback below can't both fire
+    navigated = true;
+    const url = new URL(WEBAPP_URL);
+    if (tab) url.searchParams.set("tab", tab);
+    if (lineUserId) url.searchParams.set("lineUserId", lineUserId);
+    location.replace(url.toString());
+  }
+
+  // Safety net: never leave someone stuck on this spinner forever, even if
+  // liff.init() itself hangs instead of resolving/rejecting.
+  setTimeout(() => goToApp(""), 6000);
+
+  if (!liffId) {
+    goToApp(""); // unrecognized/missing tab -- nothing to resolve, go straight there
+  } else {
+    liff.init({ liffId: liffId })
+      .then(() => (liff.isLoggedIn() ? liff.getProfile() : null))
+      .then((profile) => goToApp(profile ? profile.userId : ""))
+      .catch(() => goToApp(""));
+  }
+</script>
+</body>
+</html>
